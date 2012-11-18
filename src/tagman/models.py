@@ -94,8 +94,8 @@ class Tag(models.Model):
     archived = models.BooleanField(default=False)
 
     objects = models.Manager()
-    sys_objects = TagManager(sys=True)
-    public_objects = TagManager(sys=False)
+    sys_objects = TagManager(sys=True, archived=False)
+    public_objects = TagManager(sys=False, archived=False)
     non_archived = TagManager(sys=False, archived=False)
 
     def save(self, *args, **kwargs):
