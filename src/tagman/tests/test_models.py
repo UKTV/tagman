@@ -114,7 +114,7 @@ class TestTags(TestCase):
         self.assertTrue(self.item in items)
         self.assertTrue(item2 in items)
 
-    def test_tag_weight(self):
+    def _setup_items_with_tags(self):
         self.item.tags.add(self.tag1)
 
         ignored_model = IgnoreTestItem(name="ignore_me")
@@ -125,17 +125,21 @@ class TestTags(TestCase):
         item2.save()
         item2.tags.add(self.tag1)
 
+    def test_tag_weight(self):
+        self._setup_items_with_tags()
         all_tags = Tag.public_objects.get_tags_with_weight()
         expected_all_tags = {'test-group:test-tag1': 3, 'test-group:test-tag2': 0}
         self.assertEquals(all_tags, expected_all_tags)
 
-        # Test with ignored models.
+    def test_tag_weight_with_ignored_model(self):
+        self._setup_items_with_tags()
         ignored_model_tags = Tag.public_objects.get_tags_with_weight(
                                                                 ignore_models=['IgnoreTestItem'])
         expected_ignored_model_tags = {'test-group:test-tag1': 2, 'test-group:test-tag2': 0}
         self.assertEquals(ignored_model_tags, expected_ignored_model_tags)
 
-        # Test without composite tag name.
+    def test_tag_composite_name(self):
+        self._setup_items_with_tags()
         non_composite_name_tags = Tag.public_objects.get_tags_with_weight(composite_name=False)
         expected_non_composite_name_tags = {u'test-tag1': 3, u'test-tag2': 0}
         self.assertEquals(non_composite_name_tags, expected_non_composite_name_tags)
