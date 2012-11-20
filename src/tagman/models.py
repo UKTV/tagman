@@ -65,6 +65,22 @@ class TagManager(models.Manager):
         return super(TagManager, self).get_query_set()\
             .exclude(group__system=not self.system_tags).filter(archived=self.archived)
 
+    def get_tags_with_weight(self, ignore_models=[], composite_name=True):
+        """
+        :param ignore_models: Models to ignore in Tag usage results.
+        :param composite_name: If True the group name will be prepended 
+        to tag name for dict keys.
+
+        Returns dictionary of tag name as key and tag weight (usage) as 
+        value.
+        """
+        tag_dict = {}
+        tags = super(TagManager, self).get_query_set()
+        for tag in tags:
+            tag_name = tag.__unicode__() if composite_name else tag.name
+            tag_dict[tag_name] = tag.tag_weight(ignore_models)
+        return tag_dict
+
 
 class Tag(models.Model):
     """
@@ -78,8 +94,8 @@ class Tag(models.Model):
     archived = models.BooleanField(default=False)
 
     objects = models.Manager()
-    sys_objects = TagManager(sys=True)
-    public_objects = TagManager(sys=False)
+    sys_objects = TagManager(sys=True, archived=False)
+    public_objects = TagManager(sys=False, archived=False)
     non_archived = TagManager(sys=False, archived=False)
 
     def save(self, *args, **kwargs):
@@ -204,6 +220,15 @@ class Tag(models.Model):
                                                        filter_dict=filter_dict,
                                                        limit=limit)
         return rdict
+
+    def tag_weight(self, ignore_models=[]):
+        """
+        Returns the weight of a tag based on the tags usage.
+        """
+        weight = 0
+        for model_tags in self.tagged_items(ignore_models=ignore_models).values():
+            weight += len(model_tags)
+        return weight
 
     def unique_item_set(self, limit=None, only_auto=False, ignore_models=[],
                         filter_dict=None):
