@@ -61,7 +61,7 @@ class TestTags(TestCase):
         self.item.tags.add(self.tag1)
         model_items =\
             self.tag1.tagged_model_items(model_cls=self.item.__class__)
-        self.assertTrue(self.item in model_items)
+        self.assertTrue(self.item in list(model_items.all()))
 
     def test_get_tag_for_string(self):
         self.group.tag_set.add(self.tag1)
@@ -98,11 +98,13 @@ class TestTags(TestCase):
         ignored_model_name = ignored_model.__class__.__name__.lower()
         # first check the default call returns both
         items = self.tag1.tagged_items()
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
         # now ignore the model and check that its not returned
         items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
-        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
         self.assertTrue(ignored_model_name not in items.keys())
 
     def test_get_tagged_items_filter(self):
@@ -116,19 +118,19 @@ class TestTags(TestCase):
 
         # first check the default call returns both
         items = self.tag1.tagged_items()
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
 
         # now retrieve only the selected models
         items = self.tag1.tagged_items(models=[TestItem])
-        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
         self.assertFalse(ignored_model_name in items.keys())
         items = self.tag1.tagged_items(models=[IgnoreTestItem])
         self.assertFalse(item_model_name in items.keys())
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
         items = self.tag1.tagged_items(models=[IgnoreTestItem, TestItem])
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
 
     def test_get_unique_item_set(self):
         self.item.tags.add(self.tag1)
@@ -168,7 +170,8 @@ class TestTags(TestCase):
     def test_tag_weight_with_ignored_model(self):
         self._setup_items_with_tags()
         ignored_model_tags = Tag.public_objects.get_tags_with_weight(
-                                    ignore_models=[IgnoreTestItem])
+            ignore_models=[IgnoreTestItem]
+        )
         expected_ignored_model_tags = {
             'test-group:test-tag1': 2,
             'test-group:test-tag2': 0
@@ -284,7 +287,10 @@ class TestTaggedContentItem(TestCase):
     def test_get_auto_tagged_items(self):
         self.tci.associate_auto_tags()
         auto_tag = self.tci.auto_tags.all()[0]
-        tci_models = auto_tag.tagged_model_items(model_cls=self.tci.__class__)
+        tci_models = list(
+            auto_tag.auto_tagged_model_items
+            (model_cls=self.tci.__class__).all()
+        )
         self.assertTrue(self.tci in tci_models)
 
     def test_get_tci_from_auto_tag(self):
@@ -293,6 +299,6 @@ class TestTaggedContentItem(TestCase):
         our TCI based on its auto-tag.
         """
         auto_tag = Tag.objects.get(slug='tci-slug')
-        item_set = auto_tag.auto_tagged_model_items(model_cls=TCI)
+        item_set = set(auto_tag.auto_tagged_model_items(model_cls=TCI).all())
         self.assertEquals(len(item_set), 1)
         self.assertEquals(item_set.pop(), self.tci)

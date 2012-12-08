@@ -62,8 +62,10 @@ class TagManager(models.Manager):
         By default return only those objects that are not flagged as
         'system' tags.
         """
-        return super(TagManager, self).get_query_set()\
-            .exclude(group__system=not self.system_tags).filter(archived=self.archived)
+        return super(TagManager, self)\
+            .get_query_set()\
+            .exclude(group__system=not self.system_tags)\
+            .filter(archived=self.archived)
 
     def get_tags_with_weight(self, ignore_models=[], composite_name=True):
         """
@@ -136,61 +138,50 @@ class Tag(models.Model):
         instances tagged with this tag.
         @todo: This is *really* hacky. Can we do it more elegantly?
         """
-        models = []
+        models = set()
         for attribute in dir(self):
             if attribute[-4:] == '_set':
                 # we just want the model name, not the set name
                 model_name = attribute.split('_')[0]
-                #TODO: check if the list already contains the model name?
-                models.append(model_name)
-            # return the unique set of model names
-        #TODO: what is more efficent?
-        return set(models)
+                models.add(model_name)
+        # return the unique set of model names
+        return models
 
-    def tagged_model_items(self, model_cls=None, model_name="", limit=None,
-                           only_auto=False, filter_dict=None):
+    def tagged_model_items(self, model_cls=None, model_name="",
+                           only_auto=False):
         """
-        Return a unique set of instances of a given model, the class for
+        Return a query_set of a given model, the class for
         which is passed into model_cls OR the name for which is passed in
         model_name, that are tagged with this tag.
 
-        If `only_auto`==True then return only auto-tagged instances.
+        If `only_auto`==True then return only auto-tagged sets.
         """
-        def _get_models_items(query_set):
-            items = []
+        def _get_model_query_set(set_name):
+            query_set = None
             try:
-                _set = getattr(self, query_set)
+                _set = getattr(self, set_name)
             except AttributeError:
                 logger.exception("Set {0} not found on tag {1}".format(
-                    query_set,
+                    set_name,
                     self
                 ))
             else:
-                if filter_dict:
-                    try:
-                        items = _set.filter(**filter_dict)[:limit]
-                    except FieldError:
-                        logger.exception(
-                            "Cannot apply filter {0} to set {1}"
-                            .format(
-                                filter_dict,
-                                query_set
-                            )
-                        )
-                else:
-                    items = _set.all()[:limit]
-            return set(items)
+                query_set = _set
+            return query_set
 
         if model_cls:
             cls_name = model_cls.__name__.lower()
         else:
             cls_name = model_name.lower()
 
-        model_set = set()
         if not only_auto:
-            model_set.update(_get_models_items("{0}_set".format(cls_name)))
-        model_set.update(_get_models_items("{0}_auto_tagged_set"
-                                           .format(cls_name)))
+            model_set = _get_model_query_set(
+                "{0}_set".format(cls_name)
+            )
+        else:
+            model_set = _get_model_query_set(
+                "{0}_auto_tagged_set".format(cls_name)
+            )
 
         return model_set
 
@@ -201,14 +192,12 @@ class Tag(models.Model):
         and tag. See tagged_model_items which this calls with
         only_auto=True
         """
-        return self.tagged_model_items(model_cls, model_name, limit,
-                                       only_auto=True)
+        return self.tagged_model_items(model_cls, model_name, only_auto=True)
 
-    def tagged_items(self, limit=None, only_auto=False, models=None,
-                     ignore_models=None, filter_dict=None):
+    def tagged_items(self, only_auto=False, models=None, ignore_models=None):
         """
         Return a dictionary, keyed on model name, with each value the
-        set of items of that model tagged with this tag.
+        query_set of items of that model tagged with this tag.
 
         :param models:
             A list of model classes for which to retrieve items. If absent,
@@ -231,9 +220,7 @@ class Tag(models.Model):
         for model in models:
             if model not in ignore_models:
                 rdict[model] = self.tagged_model_items(model_name=model,
-                                                       only_auto=only_auto,
-                                                       filter_dict=filter_dict,
-                                                       limit=limit)
+                                                       only_auto=only_auto)
         return rdict
 
     def tag_weight(self, ignore_models=[]):
@@ -241,8 +228,11 @@ class Tag(models.Model):
         Returns the weight of a tag based on the tags usage.
         """
         weight = 0
-        for model_tags in self.tagged_items(ignore_models=ignore_models).values():
-            weight += len(model_tags)
+        for model_set in self.tagged_items(
+            ignore_models=ignore_models
+        ).values():
+            if model_set:
+                weight += model_set.count()
         return weight
 
     def unique_item_set(self, limit=None, only_auto=False, models=None,
@@ -257,13 +247,18 @@ class Tag(models.Model):
             Do not retrieve instances of these models
         """
         item_set = set()
-        tagged_items = self.tagged_items(limit=limit,
-                                         only_auto=only_auto,
-                                         filter_dict=filter_dict,
+        tagged_items = self.tagged_items(only_auto=only_auto,
                                          models=models,
                                          ignore_models=ignore_models)
         # merge all tagged items into a unique set
-        item_set.update(itertools.chain(*tagged_items.values()))
+        for model_set in tagged_items.values():
+            if model_set:
+                model_set = model_set.filter(**filter_dict) \
+                            if filter_dict else model_set.all()
+                item_set.update(
+                    # query set evaluated here
+                    model_set[:limit]
+                )
 
         return item_set
 
