@@ -231,7 +231,8 @@ class Tag(models.Model):
         for model_set in self.tagged_items(
             ignore_models=ignore_models
         ).values():
-            weight += model_set.count()
+            if model_set:
+                weight += model_set.count()
         return weight
 
     def unique_item_set(self, limit=None, only_auto=False, models=None,

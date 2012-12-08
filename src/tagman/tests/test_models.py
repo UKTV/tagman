@@ -104,7 +104,7 @@ class TestTags(TestCase):
         items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
         self.assertTrue(self.item in list(items[item_model_name].all()))
         items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
-        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
         self.assertTrue(ignored_model_name not in items.keys())
 
     def test_get_tagged_items_filter(self):
@@ -118,19 +118,19 @@ class TestTags(TestCase):
 
         # first check the default call returns both
         items = self.tag1.tagged_items()
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
 
         # now retrieve only the selected models
         items = self.tag1.tagged_items(models=[TestItem])
-        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
         self.assertFalse(ignored_model_name in items.keys())
         items = self.tag1.tagged_items(models=[IgnoreTestItem])
         self.assertFalse(item_model_name in items.keys())
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
         items = self.tag1.tagged_items(models=[IgnoreTestItem, TestItem])
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
 
     def test_get_unique_item_set(self):
         self.item.tags.add(self.tag1)
