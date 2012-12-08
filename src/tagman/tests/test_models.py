@@ -103,7 +103,34 @@ class TestTags(TestCase):
         # now ignore the model and check that its not returned
         items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
         self.assertTrue(self.item in list(items[item_model_name].all()))
+        items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
+        self.assertTrue(self.item in items[item_model_name])
         self.assertTrue(ignored_model_name not in items.keys())
+
+    def test_get_tagged_items_filter(self):
+        self.item.tags.add(self.tag1)
+        item_model_name = self.item.__class__.__name__.lower()
+        # Create a model that should be ignored
+        ignored_model = IgnoreTestItem(name="ignore_me")
+        ignored_model.save()
+        ignored_model.tags.add(self.tag1)
+        ignored_model_name = ignored_model.__class__.__name__.lower()
+
+        # first check the default call returns both
+        items = self.tag1.tagged_items()
+        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(ignored_model in items[ignored_model_name])
+
+        # now retrieve only the selected models
+        items = self.tag1.tagged_items(models=[TestItem])
+        self.assertTrue(self.item in items[item_model_name])
+        self.assertFalse(ignored_model_name in items.keys())
+        items = self.tag1.tagged_items(models=[IgnoreTestItem])
+        self.assertFalse(item_model_name in items.keys())
+        self.assertTrue(ignored_model in items[ignored_model_name])
+        items = self.tag1.tagged_items(models=[IgnoreTestItem, TestItem])
+        self.assertTrue(self.item in items[item_model_name])
+        self.assertTrue(ignored_model in items[ignored_model_name])
 
     def test_get_unique_item_set(self):
         self.item.tags.add(self.tag1)
@@ -113,6 +140,48 @@ class TestTags(TestCase):
         items = self.tag1.unique_item_set()
         self.assertTrue(self.item in items)
         self.assertTrue(item2 in items)
+
+    def test_get_unique_item_set_filtering_models(self):
+        self.item.tags.add(self.tag1)
+        item2 = TestItem(name="test-item-2")
+        item2.save()
+        item2.tags.add(self.tag1)
+        items = self.tag1.unique_item_set()
+        self.assertTrue(self.item in items)
+        self.assertTrue(item2 in items)
+
+    def _setup_items_with_tags(self):
+        self.item.tags.add(self.tag1)
+
+        ignored_model = IgnoreTestItem(name="ignore_me")
+        ignored_model.save()
+        ignored_model.tags.add(self.tag1)
+
+        item2 = TestItem(name="test-item-2")
+        item2.save()
+        item2.tags.add(self.tag1)
+
+    def test_tag_weight(self):
+        self._setup_items_with_tags()
+        all_tags = Tag.public_objects.get_tags_with_weight()
+        expected_all_tags = {'test-group:test-tag1': 3, 'test-group:test-tag2': 0}
+        self.assertEquals(all_tags, expected_all_tags)
+
+    def test_tag_weight_with_ignored_model(self):
+        self._setup_items_with_tags()
+        ignored_model_tags = Tag.public_objects.get_tags_with_weight(
+                                    ignore_models=[IgnoreTestItem])
+        expected_ignored_model_tags = {
+            'test-group:test-tag1': 2,
+            'test-group:test-tag2': 0
+        }
+        self.assertEquals(ignored_model_tags, expected_ignored_model_tags)
+
+    def test_tag_composite_name(self):
+        self._setup_items_with_tags()
+        non_composite_name_tags = Tag.public_objects.get_tags_with_weight(composite_name=False)
+        expected_non_composite_name_tags = {u'test-tag1': 3, u'test-tag2': 0}
+        self.assertEquals(non_composite_name_tags, expected_non_composite_name_tags)
 
 
 class TestSystemTags(TestCase):
