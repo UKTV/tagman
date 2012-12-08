@@ -170,7 +170,8 @@ class TestTags(TestCase):
     def test_tag_weight_with_ignored_model(self):
         self._setup_items_with_tags()
         ignored_model_tags = Tag.public_objects.get_tags_with_weight(
-                                    ignore_models=[IgnoreTestItem])
+            ignore_models=[IgnoreTestItem]
+        )
         expected_ignored_model_tags = {
             'test-group:test-tag1': 2,
             'test-group:test-tag2': 0
