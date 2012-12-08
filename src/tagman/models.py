@@ -68,10 +68,10 @@ class TagManager(models.Manager):
     def get_tags_with_weight(self, ignore_models=[], composite_name=True):
         """
         :param ignore_models: Models to ignore in Tag usage results.
-        :param composite_name: If True the group name will be prepended 
+        :param composite_name: If True the group name will be prepended
         to tag name for dict keys.
 
-        Returns dictionary of tag name as key and tag weight (usage) as 
+        Returns dictionary of tag name as key and tag weight (usage) as
         value.
         """
         tag_dict = {}
@@ -123,7 +123,7 @@ class Tag(models.Model):
         """
         Set the archive flag to implement soft-delete
         """
-        self.archived=True
+        self.archived = True
         self.save()
 
     @property
@@ -169,7 +169,7 @@ class Tag(models.Model):
                 if filter_dict:
                     try:
                         items = _set.filter(**filter_dict)[:limit]
-                    except FieldError, e:
+                    except FieldError:
                         logger.exception(
                             "Cannot apply filter {0} to set {1}"
                             .format(
@@ -204,14 +204,29 @@ class Tag(models.Model):
         return self.tagged_model_items(model_cls, model_name, limit,
                                        only_auto=True)
 
-    def tagged_items(self, limit=None, only_auto=False, ignore_models=[],
-                     filter_dict=None):
+    def tagged_items(self, limit=None, only_auto=False, models=None,
+                     ignore_models=None, filter_dict=None):
         """
         Return a dictionary, keyed on model name, with each value the
         set of items of that model tagged with this tag.
+
+        :param models:
+            A list of model classes for which to retrieve items. If absent,
+            retrieve any model that has a foreign key to a tag.
+        :param ignore_models:
+            Model classes not to include in the list of retrieved items.
         """
-        models = self.models_for_tag()
-        ignore_models = [model.lower() for model in ignore_models]
+        if models is None:
+            models = self.models_for_tag()
+        else:
+            models = [model.__name__.lower() for model in models]
+
+        if ignore_models is None:
+            ignore_models = set()
+        else:
+            ignore_models = set([model.__name__.lower()
+                                 for model in ignore_models])
+
         rdict = {}
         for model in models:
             if model not in ignore_models:
@@ -230,15 +245,22 @@ class Tag(models.Model):
             weight += len(model_tags)
         return weight
 
-    def unique_item_set(self, limit=None, only_auto=False, ignore_models=[],
-                        filter_dict=None):
+    def unique_item_set(self, limit=None, only_auto=False, models=None,
+                        ignore_models=None, filter_dict=None):
         """
-        Return the unique item set for a tag
+        Return the unique item set for a tag.
+
+        :param models:
+            Return only instances from these models. If absent, retrieve any
+            model that has a foreign key to Tag
+        :param ignore_models:
+            Do not retrieve instances of these models
         """
         item_set = set()
         tagged_items = self.tagged_items(limit=limit,
                                          only_auto=only_auto,
                                          filter_dict=filter_dict,
+                                         models=models,
                                          ignore_models=ignore_models)
         # merge all tagged items into a unique set
         item_set.update(itertools.chain(*tagged_items.values()))
