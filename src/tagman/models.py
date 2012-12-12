@@ -403,9 +403,6 @@ class TaggedContentItem(TaggedItem):
 
         Typically this method would be called on an instance in a post-save
         signal handler for a model.
-
-        :param new:
-            If ``True``, create tag, else rename existing.
         """
         try:
             group = TagGroup.objects.get(name=self.__class__.__name__)
