@@ -406,7 +406,10 @@ class TaggedContentItem(TaggedItem):
         """
         try:
             group = TagGroup.objects.get(name=self.__class__.__name__)
-            tag = self.auto_tags.get(group=group)
+            # this will not work with current duplicated tags
+            # tag = self.auto_tags.get(group=group)
+            # instead, we pick latest as the *good* one
+            tag = self.auto_tags.filter(group=group).order_by('-id')[0]
             tag.name = self._make_self_tag_name()
             tag.save()
         except ObjectDoesNotExist:
