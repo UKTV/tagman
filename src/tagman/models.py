@@ -412,7 +412,7 @@ class TaggedContentItem(TaggedItem):
             tag = self.auto_tags.filter(group=group).order_by('-id')[0]
             tag.name = self._make_self_tag_name()
             tag.save()
-        except ObjectDoesNotExist:
+        except (ObjectDoesNotExist, IndexError):
             tag = self.add_tag_str(self.self_tag_string, auto_tag=True)
         logger.info("Auto tagging {0} with {1}".format(str(self), repr(tag)))
         return tag
