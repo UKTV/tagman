@@ -7,10 +7,9 @@ A compound construct, the qualified tag, has a name but is assigned to a group.
 These models implement this idea.
 """
 import logging
-import itertools
 
 from django.db import models
-from django.core.exceptions import FieldError
+from django.core.exceptions import ObjectDoesNotExist
 from django.template.defaultfilters import slugify
 
 TAG_SEPARATOR = ":"
@@ -398,14 +397,22 @@ class TaggedContentItem(TaggedItem):
 
     def associate_auto_tags(self):
         """
-        Automatically tag myself (by adding to auto_tags):
-        *<model name>:<slug>.
+        Automatically tag myself (via auto_tags): "*<model name>:<slug>".
 
         Override _make_self_tag_name(self) to change the slug used.
 
         Typically this method would be called on an instance in a post-save
         signal handler for a model.
+
+        :param new:
+            If ``True``, create tag, else rename existing.
         """
-        tag = self.add_tag_str(self.self_tag_string, auto_tag=True)
+        try:
+            group = TagGroup.objects.get(name=self.__class__.__name__)
+            tag = self.auto_tags.get(group=group)
+            tag.name = self._make_self_tag_name()
+            tag.save()
+        except ObjectDoesNotExist:
+            tag = self.add_tag_str(self.self_tag_string, auto_tag=True)
         logger.info("Auto tagging {0} with {1}".format(str(self), repr(tag)))
         return tag
