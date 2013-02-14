@@ -61,7 +61,7 @@ class TestTags(TestCase):
         self.item.tags.add(self.tag1)
         model_items =\
             self.tag1.tagged_model_items(model_cls=self.item.__class__)
-        self.assertTrue(self.item in model_items)
+        self.assertTrue(self.item in list(model_items.all()))
 
     def test_get_tag_for_string(self):
         self.group.tag_set.add(self.tag1)
@@ -98,12 +98,39 @@ class TestTags(TestCase):
         ignored_model_name = ignored_model.__class__.__name__.lower()
         # first check the default call returns both
         items = self.tag1.tagged_items()
-        self.assertTrue(self.item in items[item_model_name])
-        self.assertTrue(ignored_model in items[ignored_model_name])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
         # now ignore the model and check that its not returned
-        items = self.tag1.tagged_items(ignore_models=[ignored_model_name])
-        self.assertTrue(self.item in items[item_model_name])
+        items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        items = self.tag1.tagged_items(ignore_models=[IgnoreTestItem])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
         self.assertTrue(ignored_model_name not in items.keys())
+
+    def test_get_tagged_items_filter(self):
+        self.item.tags.add(self.tag1)
+        item_model_name = self.item.__class__.__name__.lower()
+        # Create a model that should be ignored
+        ignored_model = IgnoreTestItem(name="ignore_me")
+        ignored_model.save()
+        ignored_model.tags.add(self.tag1)
+        ignored_model_name = ignored_model.__class__.__name__.lower()
+
+        # first check the default call returns both
+        items = self.tag1.tagged_items()
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
+
+        # now retrieve only the selected models
+        items = self.tag1.tagged_items(models=[TestItem])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertFalse(ignored_model_name in items.keys())
+        items = self.tag1.tagged_items(models=[IgnoreTestItem])
+        self.assertFalse(item_model_name in items.keys())
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
+        items = self.tag1.tagged_items(models=[IgnoreTestItem, TestItem])
+        self.assertTrue(self.item in list(items[item_model_name].all()))
+        self.assertTrue(ignored_model in list(items[ignored_model_name].all()))
 
     def test_get_unique_item_set(self):
         self.item.tags.add(self.tag1)
@@ -113,6 +140,49 @@ class TestTags(TestCase):
         items = self.tag1.unique_item_set()
         self.assertTrue(self.item in items)
         self.assertTrue(item2 in items)
+
+    def test_get_unique_item_set_filtering_models(self):
+        self.item.tags.add(self.tag1)
+        item2 = TestItem(name="test-item-2")
+        item2.save()
+        item2.tags.add(self.tag1)
+        items = self.tag1.unique_item_set()
+        self.assertTrue(self.item in items)
+        self.assertTrue(item2 in items)
+
+    def _setup_items_with_tags(self):
+        self.item.tags.add(self.tag1)
+
+        ignored_model = IgnoreTestItem(name="ignore_me")
+        ignored_model.save()
+        ignored_model.tags.add(self.tag1)
+
+        item2 = TestItem(name="test-item-2")
+        item2.save()
+        item2.tags.add(self.tag1)
+
+    def test_tag_weight(self):
+        self._setup_items_with_tags()
+        all_tags = Tag.public_objects.get_tags_with_weight()
+        expected_all_tags = {'test-group:test-tag1': 3, 'test-group:test-tag2': 0}
+        self.assertEquals(all_tags, expected_all_tags)
+
+    def test_tag_weight_with_ignored_model(self):
+        self._setup_items_with_tags()
+        ignored_model_tags = Tag.public_objects.get_tags_with_weight(
+            ignore_models=[IgnoreTestItem]
+        )
+        expected_ignored_model_tags = {
+            'test-group:test-tag1': 2,
+            'test-group:test-tag2': 0
+        }
+        self.assertEquals(ignored_model_tags, expected_ignored_model_tags)
+
+    def test_tag_composite_name(self):
+        self._setup_items_with_tags()
+        non_composite_name_tags = Tag.public_objects.get_tags_with_weight(composite_name=False)
+        expected_non_composite_name_tags = {u'test-tag1': 3, u'test-tag2': 0}
+        self.assertEquals(non_composite_name_tags, expected_non_composite_name_tags)
 
 
 class TestSystemTags(TestCase):
@@ -217,7 +287,10 @@ class TestTaggedContentItem(TestCase):
     def test_get_auto_tagged_items(self):
         self.tci.associate_auto_tags()
         auto_tag = self.tci.auto_tags.all()[0]
-        tci_models = auto_tag.tagged_model_items(model_cls=self.tci.__class__)
+        tci_models = list(
+            auto_tag.auto_tagged_model_items
+            (model_cls=self.tci.__class__).all()
+        )
         self.assertTrue(self.tci in tci_models)
 
     def test_get_tci_from_auto_tag(self):
@@ -226,6 +299,6 @@ class TestTaggedContentItem(TestCase):
         our TCI based on its auto-tag.
         """
         auto_tag = Tag.objects.get(slug='tci-slug')
-        item_set = auto_tag.auto_tagged_model_items(model_cls=TCI)
+        item_set = set(auto_tag.auto_tagged_model_items(model_cls=TCI).all())
         self.assertEquals(len(item_set), 1)
         self.assertEquals(item_set.pop(), self.tci)
