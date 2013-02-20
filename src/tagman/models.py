@@ -43,6 +43,11 @@ class TagGroup(models.Model):
             self.slug = slugify(self.name)
         super(TagGroup, self).save(*args, **kwargs)
 
+        # update de-normalised values in Tags of this group
+        tags_for_group = self.tag_set.all()
+        for tag in tags_for_group:
+            tag.save()
+
 
 class TagManager(models.Manager):
     def __init__(self, sys=False, archived=True):

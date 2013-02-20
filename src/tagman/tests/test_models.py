@@ -101,6 +101,36 @@ class TestTags(TestCase):
         self.assertTrue(tag.group_is_system)
         self.assertTrue(tag.system)
 
+    def test_group_change_updates_denormalised_tags_name(self):
+        """
+        Change group name and check tags de-normalised fields update
+        """
+        self.assertEquals(str(self.tag1), "test-group:test-tag1")
+        self.group.name = "new-test-group"
+        self.group.save()
+        tag = Tag.objects.get(name="test-tag1")
+        self.assertEquals(str(tag), "new-test-group:test-tag1")
+
+    def test_group_change_updates_denormalised_tags_slug(self):
+        """
+        Change group slug and check tags de-normalised fields update
+        """
+        self.assertEquals(self.tag1.group_slug, "test-group")
+        self.group.slug = "new-test-group"
+        self.group.save()
+        tag = Tag.objects.get(name="test-tag1")
+        self.assertEquals(tag.group_slug, "new-test-group")
+
+    def test_group_change_updates_denormalised_tags_system(self):
+        """
+        Change group system and check tags de-normalised fields update
+        """
+        self.assertEquals(self.tag1.group_is_system, False)
+        self.group.system = True
+        self.group.save()
+        tag = Tag.objects.get(name="test-tag1")
+        self.assertEquals(tag.group_is_system, True)
+
     def test_add_tag_to_item(self):
         [self.item.tags.add(tag) for tag in self.tags]
         self.assertTrue([tag for tag in self.item.tags.all()

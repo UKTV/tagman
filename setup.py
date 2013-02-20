@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "tagman",
-    version = "0.2.1",
+    version = "0.2.2",
     author = "ReThought Ltd & UKTV",
     author_email = "code@rethought-solutions.com",
     url = "https://github.com/UKTV/tagman.git",
