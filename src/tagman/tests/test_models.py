@@ -28,6 +28,79 @@ class TestTags(TestCase):
     def test_create_group(self):
         self.assertIsNotNone(self.group.pk)
 
+    def test_group_name(self):
+        """
+        Test that the group name is correctly saved on tag
+
+        This is inserted at time of re-factoring code to de-normalise
+        group name into Tag.group_name
+        """
+        self.assertEquals(self.tag1.group_name, self.group.name)
+
+    def test_group_name_change(self):
+        """
+        Test that group name re-set on group change for tag
+
+        Confirms that de-normalisation works when group changes
+        """
+        self.assertEquals(self.tag1.group_name, self.group.name)
+        self.tag1.group = self.groupb
+        self.tag1.save()
+        self.assertEquals(self.tag1.group_name, self.groupb.name)
+
+    def test_group_slug(self):
+        """
+        Test that the group slug is correctly saved on tag
+
+        This is inserted at time of re-factoring code to de-normalise
+        group slug into Tag.group_slug
+        """
+        self.assertEquals(self.tag1.group_slug, self.group.slug)
+
+    def test_group_slug_change(self):
+        """
+        Test that group slug re-set on group change for tag
+
+        Confirms that de-normalisation works when group changes
+        """
+        self.assertEquals(self.tag1.group_slug, self.group.slug)
+        self.tag1.group = self.groupb
+        self.tag1.save()
+        self.assertEquals(self.tag1.group_slug, self.groupb.slug)
+
+    def test_unicode(self):
+        """
+        Does the tag represent itself correctly when stringified
+        """
+        self.assertEquals(str(self.tag1), "test-group:test-tag1")
+
+    def test_unicode_system_tag(self):
+        tag = Tag(group=self.groupc, name="foo")
+        tag.save()
+        self.assertEquals(str(tag), "*system-group:foo")
+
+    def test_repr_system_tag(self):
+        tag = Tag(group=self.groupc, name="foo")
+        tag.save()
+        self.assertEquals(repr(tag), "system-group:foo")
+
+    def test_repr(self):
+        """
+        Does the tag represent itself correctly
+        """
+        self.assertEquals(repr(self.tag1), "test-group:test-tag1")
+
+    def test_denormalised_system_flag(self):
+        """
+        Does tag reflect its group's system flag
+        """
+        tag = Tag(group=self.groupc, name="foo")
+        tag.save()
+        self.assertFalse(self.tag1.group_is_system)
+        self.assertFalse(self.tag1.system)
+        self.assertTrue(tag.group_is_system)
+        self.assertTrue(tag.system)
+
     def test_add_tag_to_item(self):
         [self.item.tags.add(tag) for tag in self.tags]
         self.assertTrue([tag for tag in self.item.tags.all()

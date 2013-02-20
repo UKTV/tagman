@@ -7,10 +7,8 @@ A compound construct, the qualified tag, has a name but is assigned to a group.
 These models implement this idea.
 """
 import logging
-import itertools
 
 from django.db import models
-from django.core.exceptions import FieldError
 from django.template.defaultfilters import slugify
 
 TAG_SEPARATOR = ":"
@@ -93,6 +91,17 @@ class Tag(models.Model):
     name = models.CharField(verbose_name='Name', max_length=100)
     slug = models.SlugField(max_length=100, default="")
     group = models.ForeignKey(TagGroup, verbose_name='Group')
+    group_name = models.CharField(verbose_name='Group name',
+                                  max_length=100, editable=False,
+                                  blank=True,
+                                  help_text="De-normalised group name")
+    group_slug = models.SlugField(max_length=100, default="",
+                                  editable=False, blank=True,
+                                  help_text="De-normalised group slug")
+    group_is_system = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="De-normalised group system")
     archived = models.BooleanField(default=False)
 
     objects = models.Manager()
@@ -106,20 +115,26 @@ class Tag(models.Model):
         """
         if not self.slug:
             self.slug = slugify(self.name)
+
+        # de-normalise
+        self.group_name = str(self.group) if self.group else ""
+        self.group_slug = str(self.group.slug) if self.group else ""
+        self.group_is_system = self.group.system
+
         super(Tag, self).save(*args, **kwargs)
 
     class Meta:
         unique_together = ("name", "group",)
 
     def __unicode__(self):
-        return "{0}{1}".format(str(self.group)
+        return "{0}{1}".format(self.group_name
                                + TAG_SEPARATOR
-                               if self.group else "", self.name)
+                               if self.group_name else "", self.name)
 
     def __repr__(self):
-        return "{0}{1}".format(str(self.group.slug)
+        return "{0}{1}".format(self.group_slug
                                + TAG_SEPARATOR
-                               if self.group else "", self.slug)
+                               if self.group_slug else "", self.slug)
 
     def archive(self):
         """
@@ -130,7 +145,7 @@ class Tag(models.Model):
 
     @property
     def system(self):
-        return self.group.system
+        return self.group_is_system
 
     def models_for_tag(self):
         """
@@ -254,7 +269,7 @@ class Tag(models.Model):
         for model_set in tagged_items.values():
             if model_set:
                 model_set = model_set.filter(**filter_dict) \
-                            if filter_dict else model_set.all()
+                    if filter_dict else model_set.all()
                 item_set.update(
                     # query set evaluated here
                     model_set[:limit]
