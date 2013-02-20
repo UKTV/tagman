@@ -1,20 +1,18 @@
 # -*- coding: utf-8 -*-
-from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 
 
-class Migration(SchemaMigration):
+class Migration(DataMigration):
 
     def forwards(self, orm):
         # Adding field 'Tag.group_name'
-        if not db.dry_run:
-            for tag in orm.Tag.objects.all():
-                group = orm.TagGroup.objects.get(id=tag.group_id)
-                prefix = "*" if group.system else ""
-                tag.group_name = "{}{}".format(prefix, group.name)
-                tag.group_slug = str(group.slug)
-                tag.group_is_system = group.system
-                tag.save()
+        for tag in orm.Tag.objects.all():
+            group = orm.TagGroup.objects.get(id=tag.group_id)
+            prefix = "*" if group.system else ""
+            tag.group_name = "{}{}".format(prefix, group.name)
+            tag.group_slug = str(group.slug)
+            tag.group_is_system = group.system
+            tag.save()
 
     def backwards(self, orm):
         raise RuntimeError("This migration is not reversible")
