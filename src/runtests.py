@@ -15,7 +15,7 @@ def main():
                                'PASSWORD': '',
                                'HOST': '',
                                'PORT': ''}},
-        NOSE_ARGS=['--with-xunit', '-s'],
+        NOSE_ARGS=['--with-xunit', '-s', '-v'],
     )
 
     call_command('test', 'tagman')
