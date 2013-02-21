@@ -421,11 +421,27 @@ class TaggedContentItem(TaggedItem):
         Automatically tag myself (by adding to auto_tags):
         *<model name>:<slug>.
 
-        Override _make_self_tag_name(self) to change the slug used.
-
         Typically this method would be called on an instance in a post-save
         signal handler for a model.
+
+        Checks for an existing tag having the group of self.__class__.__name__
+        and, if so, changes the name rather than create a new tag and
+        thus ensures existing references remain valid.
         """
-        tag = self.add_tag_str(self.self_tag_string, auto_tag=True)
+        tag_group = "*{}".format(self.__class__.__name__)
+        auto_tags = [t for t in self.auto_tags.all()
+                     if t.group_name == tag_group]
+
+        if auto_tags and len(auto_tags) == 1:
+            tag = auto_tags[0]
+            tag.name = self._make_self_tag_name()
+            # we lat tag save handler create the slug which it will do so
+            # if it finds an empty string.
+            tag.slug = ""
+            tag.save()
+        else:
+            tag = self.add_tag_str(self.self_tag_string, auto_tag=True)
+
         logger.info("Auto tagging {0} with {1}".format(str(self), repr(tag)))
+
         return tag

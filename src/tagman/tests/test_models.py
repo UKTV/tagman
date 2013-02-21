@@ -405,3 +405,22 @@ class TestTaggedContentItem(TestCase):
         item_set = set(auto_tag.auto_tagged_model_items(model_cls=TCI).all())
         self.assertEquals(len(item_set), 1)
         self.assertEquals(item_set.pop(), self.tci)
+
+    def test_tci_change_name_updates_tag_not_add(self):
+        """
+        If the slug for an item changes, it's self tag should be updated -
+        a new tag should not be made
+        """
+        self.tci.associate_auto_tags()
+        auto_tags = self.tci.auto_tags.all()
+        self.assertEquals(len(auto_tags), 1)
+        self.assertEquals(auto_tags[0].name, "tci-slug")
+
+        # now re-name our content item
+        self.tci.slug = "new-tci-slug"
+        self.tci.save()
+        self.tci.associate_auto_tags()
+        auto_tags = self.tci.auto_tags.all()
+        self.assertEquals(len(auto_tags), 1)
+        self.assertEquals(auto_tags[0].name, "new-tci-slug")
+        self.assertEquals(auto_tags[0].slug, "new-tci-slug")
