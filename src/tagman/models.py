@@ -181,7 +181,7 @@ class Tag(models.Model):
             try:
                 _set = getattr(self, set_name)
             except AttributeError:
-                logger.exception("Set {0} not found on tag {1}".format(
+                logger.debug("Set {0} not found on tag {1}".format(
                     set_name,
                     self
                 ))
