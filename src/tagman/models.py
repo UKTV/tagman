@@ -432,10 +432,14 @@ class TaggedContentItem(TaggedItem):
         auto_tags = [t for t in self.auto_tags.all()
                      if t.group_name == tag_group]
 
-        if auto_tags and len(auto_tags) == 1:
-            tag = auto_tags[0]
+        # we allow for old data prior to this fix when changing
+        # name resulted in more than one self-tag being added. Collapsing these
+        # is a dangerous migration so we leave them and amend the last in the
+        # list which will be the 'current' one
+        if auto_tags:
+            tag = auto_tags[-1]
             tag.name = self._make_self_tag_name()
-            # we lat tag save handler create the slug which it will do so
+            # we let tag save handler create the slug which it will do so
             # if it finds an empty string.
             tag.slug = ""
             tag.save()
