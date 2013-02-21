@@ -435,6 +435,8 @@ class TaggedContentItem(TaggedItem):
         if auto_tags and len(auto_tags) == 1:
             tag = auto_tags[0]
             tag.name = self._make_self_tag_name()
+            # we lat tag save handler create the slug which it will do so
+            # if it finds an empty string.
             tag.slug = ""
             tag.save()
         else:
