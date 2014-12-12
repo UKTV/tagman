@@ -132,14 +132,14 @@ class Tag(models.Model):
         unique_together = ("name", "group",)
 
     def __unicode__(self):
-        return "{0}{1}".format(self.group_name
-                               + TAG_SEPARATOR
-                               if self.group_name else "", self.name)
+        return u"{0}{1}".format(
+            self.group_name + TAG_SEPARATOR if self.group_name else "", self.name
+        )
 
     def __repr__(self):
-        return "{0}{1}".format(self.group_slug
-                               + TAG_SEPARATOR
-                               if self.group_slug else "", self.slug)
+        return u"{0}{1}".format(
+            self.group_slug + TAG_SEPARATOR if self.group_slug else "", self.slug
+        )
 
     def archive(self):
         """
