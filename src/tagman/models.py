@@ -21,8 +21,8 @@ class TagGroup(models.Model):
     have tags 'cinnamon', 'beef' etc which would be distinguish from another
     tag also named 'beef' but in the category 'meat'.
     """
-    name = models.CharField(verbose_name='Name', max_length=100, unique=True)
-    slug = models.SlugField(max_length=100, default="")
+    name = models.CharField(verbose_name='Name', max_length=255, unique=True)
+    slug = models.SlugField(max_length=255, default="")
     system = models.BooleanField(default=False,
                                  help_text="Set True for system groups that "
                                            "should not appear for general use")
@@ -93,14 +93,14 @@ class Tag(models.Model):
     have flavour:cinnamon where the tag is 'cinnamon' and the tag group
     is 'flavour'.
     """
-    name = models.CharField(verbose_name='Name', max_length=100)
-    slug = models.SlugField(max_length=100, default="")
+    name = models.CharField(verbose_name='Name', max_length=255)
+    slug = models.SlugField(max_length=255, default="")
     group = models.ForeignKey(TagGroup, verbose_name='Group')
     group_name = models.CharField(verbose_name='Group name',
-                                  max_length=100, editable=False,
+                                  max_length=255, editable=False,
                                   blank=True,
                                   help_text="De-normalised group name")
-    group_slug = models.SlugField(max_length=100, default="",
+    group_slug = models.SlugField(max_length=255, default="",
                                   editable=False, blank=True,
                                   help_text="De-normalised group slug")
     group_is_system = models.BooleanField(
@@ -132,14 +132,14 @@ class Tag(models.Model):
         unique_together = ("name", "group",)
 
     def __unicode__(self):
-        return "{0}{1}".format(self.group_name
-                               + TAG_SEPARATOR
-                               if self.group_name else "", self.name)
+        return u"{0}{1}".format(
+            self.group_name + TAG_SEPARATOR if self.group_name else "", self.name
+        )
 
     def __repr__(self):
-        return "{0}{1}".format(self.group_slug
-                               + TAG_SEPARATOR
-                               if self.group_slug else "", self.slug)
+        return u"{0}{1}".format(
+            self.group_slug + TAG_SEPARATOR if self.group_slug else "", self.slug
+        )
 
     def archive(self):
         """
