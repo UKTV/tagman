@@ -442,6 +442,9 @@ class TaggedContentItem(TaggedItem):
         if auto_tags:
             tag = auto_tags[-1]
             tag.name = self._make_self_tag_name()
+            # Ensure the auto tag is not archived if this is a new item with
+            # the same name as an old item
+            tag.archived = False
             # we let tag save handler create the slug which it will do so
             # if it finds an empty string.
             tag.slug = ""
