@@ -314,6 +314,9 @@ class Tag(models.Model):
             logger.debug("Created tag via get_or_create "
                          "with repr {0} and ID {1}"
                          .format(repr(tag), tag.id))
+        elif tag.archived:
+            tag.archived = False
+            tag.save()
         return tag
 
     @classmethod
