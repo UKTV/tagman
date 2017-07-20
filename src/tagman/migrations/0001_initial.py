@@ -1,57 +1,43 @@
 # -*- coding: utf-8 -*-
-import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import migrations, models
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'TagGroup'
-        db.create_table('tagman_taggroup', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=100)),
-            ('system', self.gf('django.db.models.fields.BooleanField')(default=False)),
-        ))
-        db.send_create_signal('tagman', ['TagGroup'])
+    dependencies = [
+    ]
 
-        # Adding model 'Tag'
-        db.create_table('tagman_tag', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=100)),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['tagman.TagGroup'], null=True, blank=True)),
-        ))
-        db.send_create_signal('tagman', ['Tag'])
-
-        # Adding unique constraint on 'Tag', fields ['id', 'group']
-        db.create_unique('tagman_tag', ['id', 'group_id'])
-
-
-    def backwards(self, orm):
-        # Removing unique constraint on 'Tag', fields ['id', 'group']
-        db.delete_unique('tagman_tag', ['id', 'group_id'])
-
-        # Deleting model 'TagGroup'
-        db.delete_table('tagman_taggroup')
-
-        # Deleting model 'Tag'
-        db.delete_table('tagman_tag')
-
-
-    models = {
-        'tagman.tag': {
-            'Meta': {'unique_together': "(('id', 'group'),)", 'object_name': 'Tag'},
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['tagman.TagGroup']", 'null': 'True', 'blank': 'True'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
-        },
-        'tagman.taggroup': {
-            'Meta': {'object_name': 'TagGroup'},
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'}),
-            'system': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
-        }
-    }
-
-    complete_apps = ['tagman']
+    operations = [
+        migrations.CreateModel(
+            name='Tag',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=255, verbose_name=b'Name')),
+                ('slug', models.SlugField(default=b'', max_length=255)),
+                ('group_name', models.CharField(help_text=b'De-normalised group name', verbose_name=b'Group name', max_length=255, editable=False, blank=True)),
+                ('group_slug', models.SlugField(default=b'', editable=False, max_length=255, blank=True, help_text=b'De-normalised group slug')),
+                ('group_is_system', models.BooleanField(default=False, help_text=b'De-normalised group system', editable=False)),
+                ('archived', models.BooleanField(default=False)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='TagGroup',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(unique=True, max_length=255, verbose_name=b'Name')),
+                ('slug', models.SlugField(default=b'', max_length=255)),
+                ('system', models.BooleanField(default=False, help_text=b'Set True for system groups that should not appear for general use')),
+            ],
+        ),
+        migrations.AddField(
+            model_name='tag',
+            name='group',
+            field=models.ForeignKey(verbose_name=b'Group', to='tagman.TagGroup'),
+        ),
+        migrations.AlterUniqueTogether(
+            name='tag',
+            unique_together=set([('name', 'group')]),
+        ),
+    ]
