@@ -10,5 +10,6 @@ class Command(BaseCommand):
         try:
             archived_tags = Tag.objects.filter(archived=True)
             archived_tags.delete()
-        except Exception, e:
-            raise CommandError('Exception while deleting tags: %s' % e.message)
+        except Exception as e:
+            num, message = e.args
+            raise CommandError('Exception while deleting tags: %s' % message)

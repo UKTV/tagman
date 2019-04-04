@@ -150,7 +150,7 @@ class TestTags(TestCase):
         tag1_noclone = Tag(group=self.groupb, name=self.tag1.name)
         try:
             tag1_noclone.save()
-        except IntegrityError, ie:
+        except IntegrityError as ie:
             self.fail("Unique constraint on group,name fails: {0}"
                       .format(str(ie)))
 

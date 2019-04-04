@@ -29,7 +29,11 @@ class TagGroup(models.Model):
 
     def __unicode__(self):
         prefix = "*" if self.system else ""
-        return prefix + self.name
+        return prefix + str(self.name)
+
+    def __str__(self):
+        prefix = "*" if self.system else ""
+        return prefix + str(self.name)
 
     def tags_for_group(self):
         """
@@ -141,6 +145,11 @@ class Tag(models.Model):
             self.group_slug + TAG_SEPARATOR if self.group_slug else "", self.slug
         )
 
+    def __str__(self):
+        return u"{0}{1}".format(
+            self.group_slug + TAG_SEPARATOR if self.group_slug else "", self.slug
+        )
+
     def archive(self):
         """
         Set the archive flag to implement soft-delete
@@ -167,8 +176,7 @@ class Tag(models.Model):
         # return the unique set of model names
         return models
 
-    def tagged_model_items(self, model_cls=None, model_name="",
-                           only_auto=False):
+    def tagged_model_items(self, model_cls=None, model_name="", only_auto=False):
         """
         Return a query_set of a given model, the class for
         which is passed into model_cls OR the name for which is passed in
@@ -205,8 +213,7 @@ class Tag(models.Model):
 
         return model_set
 
-    def auto_tagged_model_items(self, model_cls=None, model_name="",
-                                limit=None):
+    def auto_tagged_model_items(self, model_cls=None, model_name="", limit=None):
         """
         Convenience method to return all auto-tagged instances for class
         and tag. See tagged_model_items which this calls with

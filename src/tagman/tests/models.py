@@ -13,6 +13,9 @@ class TestItem(TaggedItem):
     def __unicode__(self):
         return str(self.name)
 
+    def __str__(self):
+        return str(self.name)
+
 
 class IgnoreTestItem(TaggedItem):
     name = models.CharField(max_length=100, default="test")
@@ -21,6 +24,9 @@ class IgnoreTestItem(TaggedItem):
         app_label = "tagman"
 
     def __unicode__(self):
+        return str(self.name)
+
+    def __str__(self):
         return str(self.name)
 
 
